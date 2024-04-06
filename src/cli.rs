@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use clap::{Parser, Subcommand};
 
-/// 格式 rcli csv -i input.csv -o output.json --header -d ','
+/// 格式 rcli csv -i input.csv -o output.json -d ','
 
 /// 应用程序命令行
 #[derive(Debug, Clone, Parser)]

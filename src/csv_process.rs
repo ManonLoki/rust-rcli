@@ -23,14 +23,14 @@ pub fn parse(opts: &CsvOpts) -> Result<()> {
         .delimiter(opts.delimiter)
         .from_path(&opts.input)?;
     // 结果集
-    let mut data_result = vec![];
+    let mut record = vec![];
 
-    for result in reader.deserialize() {
-        let record: DataRecord = result?;
-        data_result.push(record);
+    // 遍历结果
+    for row in reader.deserialize::<DataRecord>() {
+        record.push(row?);
     }
 
-    let json = serde_json::to_string_pretty(&data_result)?;
+    let json = serde_json::to_string_pretty(&record)?;
 
     // 将结果写入文件
     std::fs::write(&opts.output, json)?;
