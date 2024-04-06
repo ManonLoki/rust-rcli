@@ -19,7 +19,9 @@ pub struct DataRecord {
 /// 转换数据
 pub fn parse(opts: &CsvOpts) -> Result<()> {
     // 读取文件
-    let mut reader = csv::Reader::from_path(&opts.input)?;
+    let mut reader = csv::ReaderBuilder::new()
+        .delimiter(opts.delimiter)
+        .from_path(&opts.input)?;
     // 结果集
     let mut data_result = vec![];
 

@@ -30,10 +30,7 @@ pub struct CsvOpts {
     pub output: PathBuf,
     /// 分隔符
     #[arg(short, long, default_value = ",")]
-    pub delimiter: char,
-    /// 是否包含头部
-    #[arg(long, default_value_t = false)]
-    pub header: bool,
+    pub delimiter: u8,
 }
 
 /// 验证输入文件
