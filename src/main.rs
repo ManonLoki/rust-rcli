@@ -1,20 +1,15 @@
 use anyhow::Result;
 use clap::Parser;
-use rcli::{
-    cli::{self, SubCommand},
-    csv_process,
-};
+use rcli::{process_csv, Opts, SubCommand};
 
 fn main() -> Result<()> {
     // 转换命令行
-    let cli = cli::Cli::parse();
+    let opts = Opts::parse();
 
     // 匹配子命令
-    match cli.command {
+    match opts.command {
         // 匹配CSV
-        SubCommand::Csv(opts) => {
-            csv_process::parse(&opts)?;
-        }
+        SubCommand::Csv(opts) => process_csv(&opts.input, &opts.output)?,
     }
 
     Ok(())
