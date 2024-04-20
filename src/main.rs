@@ -1,6 +1,6 @@
 use anyhow::Result;
 use clap::Parser;
-use rcli::{process_csv, process_gen_pass, Opts, SubCommand};
+use rcli::{decode, encode, process_csv, process_gen_pass, B64SubCommand, Opts, SubCommand};
 
 fn main() -> Result<()> {
     // 转换命令行
@@ -23,6 +23,14 @@ fn main() -> Result<()> {
                 opts.no_lower,
             )?;
         }
+        SubCommand::Base64(sub_command) => match sub_command {
+            B64SubCommand::Encode(opts) => {
+                encode(&opts.input, opts.format)?;
+            }
+            B64SubCommand::Decode(opts) => {
+                decode(&opts.input, opts.format)?;
+            }
+        },
     }
 
     Ok(())

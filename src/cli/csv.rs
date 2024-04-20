@@ -1,6 +1,8 @@
-use std::{fmt::Display, path::Path, str::FromStr};
+use std::{fmt::Display, str::FromStr};
 
 use clap::Parser;
+
+use super::validate_input;
 
 /// 输出格式
 #[derive(Debug, Clone, Copy)]
@@ -43,7 +45,7 @@ impl Display for OutputFormat {
 #[derive(Debug, Clone, Parser)]
 pub struct CsvOpts {
     /// 输入文件
-    #[arg(short, long,value_parser=validate_input_file)]
+    #[arg(short, long,value_parser=validate_input)]
     pub input: String,
     /// 输出文件
     #[arg(short, long)]
@@ -58,15 +60,6 @@ pub struct CsvOpts {
     /// 是否有Header
     #[arg(long, default_value_t = true)]
     pub header: bool,
-}
-
-/// 验证输入文件
-fn validate_input_file(input: &str) -> Result<String, &'static str> {
-    if Path::new(input).exists() {
-        Ok(input.into())
-    } else {
-        Err("File Not Exists")
-    }
 }
 
 // 转换输出格式
