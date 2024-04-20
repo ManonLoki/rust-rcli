@@ -2,9 +2,9 @@ use anyhow::Result;
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use clap::Parser;
 use rcli::{
-    process_csv, process_decode, process_encode, process_gen_pass, process_text_generate_key,
-    process_text_sign, process_text_verify, B64SubCommand, Opts, SubCommand, TextFormat,
-    TextSubCommand,
+    process_csv, process_decode, process_encode, process_gen_pass, process_text_decrypt,
+    process_text_encrypt, process_text_generate_key, process_text_sign, process_text_verify,
+    B64SubCommand, Opts, SubCommand, TextFormat, TextSubCommand,
 };
 use zxcvbn::zxcvbn;
 
@@ -70,7 +70,22 @@ fn main() -> Result<()> {
                         std::fs::write(sk_path, &keys[0])?;
                         std::fs::write(pk_path, &keys[1])?;
                     }
+                    TextFormat::ChaCha20 => {
+                        let path = &opts.output.join("chacha20.txt");
+                        std::fs::write(path, &keys[0])?;
+                    }
                 }
+            }
+
+            TextSubCommand::Encrypt(opts) => {
+                let result = process_text_encrypt(&opts.key, &opts.input, opts.format)?;
+                let result = URL_SAFE_NO_PAD.encode(result);
+                println!("加密结果: {}", result);
+            }
+            TextSubCommand::Decrypt(opts) => {
+                let result = process_text_decrypt(&opts.key, &opts.input, opts.format)?;
+                let result = URL_SAFE_NO_PAD.encode(result);
+                println!("解密结果: {}", result);
             }
         },
     }

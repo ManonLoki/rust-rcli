@@ -18,6 +18,10 @@ pub enum TextSubCommand {
     Verify(TextVerifyOpts),
     /// 生成Key
     Generate(TextKeyGenerateOpts),
+    /// 加密
+    Encrypt(TextEncryptOpts),
+    /// 解密
+    Decrypt(TextEncryptOpts),
 }
 
 /// 签名参数
@@ -55,6 +59,7 @@ pub struct TextVerifyOpts {
 pub enum TextFormat {
     Blake3,
     Ed25519,
+    ChaCha20,
 }
 
 impl FromStr for TextFormat {
@@ -64,6 +69,7 @@ impl FromStr for TextFormat {
         match s {
             "blake3" => Ok(Self::Blake3),
             "ed25519" => Ok(Self::Ed25519),
+            "chacha20" => Ok(Self::ChaCha20),
             _ => Err(anyhow::anyhow!("Invalid TextFormat")),
         }
     }
@@ -74,6 +80,7 @@ impl From<TextFormat> for &'static str {
         match format {
             TextFormat::Blake3 => "blake3",
             TextFormat::Ed25519 => "ed25519",
+            TextFormat::ChaCha20 => "chacha20",
         }
     }
 }
@@ -84,6 +91,7 @@ impl Display for TextFormat {
     }
 }
 
+/// 生成Key的选项
 #[derive(Debug, Clone, Parser)]
 pub struct TextKeyGenerateOpts {
     /// 输出位置
@@ -94,6 +102,21 @@ pub struct TextKeyGenerateOpts {
     pub format: TextFormat,
 }
 
+/// 文本加/解密选项
+#[derive(Debug, Clone, Parser)]
+pub struct TextEncryptOpts {
+    /// 输入
+    #[arg(short,long,value_parser=validate_file,default_value="-")]
+    pub input: String,
+    /// Key 这里不从文件读取了
+    #[arg(short, long)]
+    pub key: String,
+    /// 格式化方式
+    #[arg(long,value_parser=parse_format,default_value="chacha20")]
+    pub format: TextFormat,
+}
+
+/// 转换Format
 fn parse_format(s: &str) -> Result<TextFormat, anyhow::Error> {
     s.parse()
 }

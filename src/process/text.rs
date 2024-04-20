@@ -2,8 +2,12 @@ use std::path::Path;
 
 use crate::{get_reader, TextFormat};
 use anyhow::Result;
+use chacha20poly1305::{
+    aead::{Aead, AeadCore, KeyInit, OsRng},
+    ChaCha20Poly1305,
+};
+
 use ed25519_dalek::{Signer, SigningKey, Verifier, VerifyingKey};
-use rand::rngs::OsRng;
 
 use super::gen_pass;
 /// 使用多种方式对文本进行签名
@@ -29,6 +33,18 @@ pub trait KeyLoader {
 pub trait KeyGenerate {
     /// 生成Key
     fn generate_key() -> Result<Vec<Vec<u8>>>;
+}
+
+/// 定义加密Trait
+pub trait TextEncrypt {
+    /// 加密
+    fn encrypt(&self, reader: &mut dyn std::io::Read) -> Result<Vec<u8>>;
+}
+
+/// 定义解密Trait
+pub trait TextDecrypt {
+    /// 解密
+    fn decrypt(&self, reader: &mut dyn std::io::Read) -> Result<Vec<u8>>;
 }
 
 /// Blake3签名
@@ -169,6 +185,69 @@ impl TextVerify for Ed25519Verifier {
     }
 }
 
+#[derive(Debug)]
+pub struct Chacha20 {
+    key: chacha20poly1305::Key,
+    nonce: chacha20poly1305::Nonce,
+}
+
+impl Chacha20 {
+    fn new(key: chacha20poly1305::Key, nonce: chacha20poly1305::Nonce) -> Self {
+        Self { key, nonce }
+    }
+
+    fn try_new(key: &[u8], nonce: &[u8]) -> Result<Self> {
+        let key = chacha20poly1305::Key::from_slice(key);
+        let nonce = chacha20poly1305::Nonce::from_slice(nonce);
+        Ok(Self::new(key.to_owned(), nonce.to_owned()))
+    }
+}
+impl KeyLoader for Chacha20 {
+    fn load_key(key: impl AsRef<Path>) -> Result<Self> {
+        let data = std::fs::read(key)?;
+        let key = &data[0..32];
+        let nonce = &data[32..44];
+        Self::try_new(key, nonce)
+    }
+}
+
+impl KeyGenerate for Chacha20 {
+    fn generate_key() -> Result<Vec<Vec<u8>>> {
+        let mut rng = OsRng;
+        let mut key = ChaCha20Poly1305::generate_key(&mut rng).to_vec();
+        let mut nonce = ChaCha20Poly1305::generate_nonce(&mut rng).to_vec();
+        key.append(&mut nonce);
+        Ok(vec![key])
+    }
+}
+
+impl TextEncrypt for Chacha20 {
+    fn encrypt(&self, reader: &mut dyn std::io::Read) -> Result<Vec<u8>> {
+        let mut buf = Vec::new();
+        reader.read_to_end(&mut buf)?;
+
+        let cipher = ChaCha20Poly1305::new(&self.key);
+        let nonce = chacha20poly1305::Nonce::from_slice(&self.nonce);
+        let cipher_text = cipher
+            .encrypt(nonce, buf.as_slice())
+            .map_err(|e| anyhow::anyhow!(e))?;
+        Ok(cipher_text)
+    }
+}
+
+impl TextDecrypt for Chacha20 {
+    fn decrypt(&self, reader: &mut dyn std::io::Read) -> Result<Vec<u8>> {
+        let mut buf = Vec::new();
+        reader.read_to_end(&mut buf)?;
+        let cipher = ChaCha20Poly1305::new(&self.key);
+        let nonce = chacha20poly1305::Nonce::from_slice(&self.nonce);
+
+        let plain_text = cipher
+            .decrypt(nonce, buf.as_slice())
+            .map_err(|e| anyhow::anyhow!(e))?;
+        Ok(plain_text)
+    }
+}
 /// 签名逻辑
 pub fn process_text_sign(key: &str, input: &str, format: TextFormat) -> Result<Vec<u8>> {
     let mut reader = get_reader(input)?;
@@ -181,6 +260,9 @@ pub fn process_text_sign(key: &str, input: &str, format: TextFormat) -> Result<V
         TextFormat::Ed25519 => {
             let signer = Ed25519Singer::load_key(key)?;
             signer.sign(&mut reader)?
+        }
+        _ => {
+            return Err(anyhow::anyhow!("Unsupported Sign"));
         }
     };
 
@@ -200,6 +282,9 @@ pub fn process_text_verify(key: &str, input: &str, format: TextFormat, sig: &[u8
             let verifier = Ed25519Verifier::load_key(key)?;
             verifier.verify(&mut reader, sig)?
         }
+        _ => {
+            return Err(anyhow::anyhow!("Unsupported Verify"));
+        }
     };
 
     Ok(verified)
@@ -210,9 +295,32 @@ pub fn process_text_generate_key(format: TextFormat) -> Result<Vec<Vec<u8>>> {
     let keys = match format {
         TextFormat::Blake3 => Blake3::generate_key()?,
         TextFormat::Ed25519 => Ed25519Singer::generate_key()?,
+        TextFormat::ChaCha20 => Chacha20::generate_key()?,
     };
 
     Ok(keys)
+}
+
+/// 加密
+pub fn process_text_encrypt(key: &str, input: &str, format: TextFormat) -> Result<Vec<u8>> {
+    let mut reader = get_reader(input)?;
+    let encryptor = Chacha20::load_key(key)?;
+
+    match format {
+        TextFormat::ChaCha20 => encryptor.encrypt(&mut reader),
+        _ => Err(anyhow::anyhow!("Unsupported Encrypt")),
+    }
+}
+
+/// 解密
+pub fn process_text_decrypt(key: &str, input: &str, format: TextFormat) -> Result<Vec<u8>> {
+    let mut reader = get_reader(input)?;
+    let decrypter = Chacha20::load_key(key)?;
+
+    match format {
+        TextFormat::ChaCha20 => decrypter.decrypt(&mut reader),
+        _ => Err(anyhow::anyhow!("Unsupported Decrypt")),
+    }
 }
 
 #[cfg(test)]
@@ -239,6 +347,19 @@ mod tests {
         let verifier = Ed25519Verifier::load_key("fixture/ed25519.pk")?;
         assert!(verifier.verify(&mut &data[..], &sig)?);
 
+        Ok(())
+    }
+
+    #[test]
+    fn test_chacha20_encrypt_decrypt() -> Result<()> {
+        let key = "fixture/chacha20.txt";
+        let data = b"Cargo.toml";
+        let encryptor: Chacha20 = Chacha20::load_key(key)?;
+        let cipher_text = encryptor.encrypt(&mut &data[..])?;
+
+        let encryptor: Chacha20 = Chacha20::load_key(key)?;
+        let res = encryptor.decrypt(&mut &cipher_text[..])?;
+        assert_eq!(res, data);
         Ok(())
     }
 }
