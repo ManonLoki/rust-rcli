@@ -12,7 +12,7 @@ pub fn process_gen_pass(
     no_special: bool,
     no_upper: bool,
     no_lower: bool,
-) -> Result<()> {
+) -> Result<String> {
     let mut rng = rand::thread_rng();
     let mut password = Vec::new();
     let mut chars = vec![];
@@ -46,12 +46,5 @@ pub fn process_gen_pass(
     // 转换为字符串
     let password = String::from_utf8(password)?;
 
-    println!("Generate Password: {}", password);
-
-    // 验证密码强度
-    let estimate = zxcvbn::zxcvbn(&password, &[])?;
-
-    eprintln!("Password Strength: {}", estimate.score());
-
-    Ok(())
+    Ok(password)
 }

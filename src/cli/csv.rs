@@ -2,7 +2,7 @@ use std::{fmt::Display, str::FromStr};
 
 use clap::Parser;
 
-use super::validate_input;
+use super::validate_file;
 
 /// 输出格式
 #[derive(Debug, Clone, Copy)]
@@ -45,7 +45,7 @@ impl Display for OutputFormat {
 #[derive(Debug, Clone, Parser)]
 pub struct CsvOpts {
     /// 输入文件
-    #[arg(short, long,value_parser=validate_input)]
+    #[arg(short, long,value_parser=validate_file)]
     pub input: String,
     /// 输出文件
     #[arg(short, long)]

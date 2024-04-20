@@ -1,4 +1,4 @@
-use crate::cli::B64Format;
+use crate::{cli::B64Format, get_reader};
 use anyhow::Result;
 use base64::{
     engine::general_purpose::{STANDARD, URL_SAFE_NO_PAD},
@@ -6,7 +6,7 @@ use base64::{
 };
 
 /// 编码
-pub fn encode(input: &str, format: B64Format) -> Result<()> {
+pub fn process_encode(input: &str, format: B64Format) -> Result<String> {
     // 获取Reader
     let mut reader = get_reader(input)?;
     // 创建buf
@@ -19,14 +19,11 @@ pub fn encode(input: &str, format: B64Format) -> Result<()> {
         B64Format::Standard => STANDARD.encode(buf),
         B64Format::UrlSafe => URL_SAFE_NO_PAD.encode(buf),
     };
-
-    println!("{}", encoded);
-
-    Ok(())
+    Ok(encoded)
 }
 
 /// 解码
-pub fn decode(input: &str, format: B64Format) -> Result<()> {
+pub fn process_decode(input: &str, format: B64Format) -> Result<Vec<u8>> {
     // 获取Reader
     let mut reader = get_reader(input)?;
     // 创建buf
@@ -41,18 +38,7 @@ pub fn decode(input: &str, format: B64Format) -> Result<()> {
         B64Format::Standard => STANDARD.decode(buf),
         B64Format::UrlSafe => URL_SAFE_NO_PAD.decode(buf),
     }?;
-
-    println!("{}", String::from_utf8(decoded)?);
-
-    Ok(())
-}
-
-/// 获取Reader
-fn get_reader(input: &str) -> Result<Box<dyn std::io::Read>> {
-    match input {
-        "-" => Ok(Box::new(std::io::stdin())),
-        _ => Ok(Box::new(std::fs::File::open(input)?)),
-    }
+    Ok(decoded)
 }
 
 #[cfg(test)]
@@ -61,13 +47,13 @@ mod tests {
 
     #[test]
     fn test_encode() {
-        assert!(encode("fixture/b64_origin.txt", B64Format::Standard).is_ok());
-        assert!(encode("fixture/b64_origin.txt", B64Format::UrlSafe).is_ok());
+        assert!(process_encode("fixture/b64_origin.txt", B64Format::Standard).is_ok());
+        assert!(process_encode("fixture/b64_origin.txt", B64Format::UrlSafe).is_ok());
     }
 
     #[test]
     fn test_decode() {
-        assert!(decode("fixture/b64_standard.txt", B64Format::Standard).is_ok());
-        assert!(decode("fixture/b64_urlsafe.txt", B64Format::UrlSafe).is_ok());
+        assert!(process_decode("fixture/b64_standard.txt", B64Format::Standard).is_ok());
+        assert!(process_decode("fixture/b64_urlsafe.txt", B64Format::UrlSafe).is_ok());
     }
 }
