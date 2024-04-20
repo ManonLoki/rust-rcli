@@ -1,8 +1,10 @@
 use anyhow::Result;
+use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use clap::Parser;
 use rcli::{
-    process_csv, process_decode, process_encode, process_gen_pass, process_sign, process_verify,
-    B64SubCommand, Opts, SubCommand, TextSubCommand,
+    process_csv, process_decode, process_encode, process_gen_pass, process_text_generate_key,
+    process_text_sign, process_text_verify, B64SubCommand, Opts, SubCommand, TextFormat,
+    TextSubCommand,
 };
 use zxcvbn::zxcvbn;
 
@@ -42,10 +44,33 @@ fn main() -> Result<()> {
         },
         SubCommand::Text(sub_command) => match sub_command {
             TextSubCommand::Sign(opts) => {
-                process_sign(&opts.key, &opts.input, opts.format)?;
+                let result = process_text_sign(&opts.key, &opts.input, opts.format)?;
+                let result = URL_SAFE_NO_PAD.encode(result);
+                println!("签名结果: {}", result);
             }
             TextSubCommand::Verify(opts) => {
-                process_verify(&opts.key, &opts.input, opts.format, &opts.sig)?;
+                // 解出签名
+                let sig = URL_SAFE_NO_PAD.decode(&opts.sig)?;
+                let result = process_text_verify(&opts.key, &opts.input, opts.format, &sig)?;
+                println!("验证结果: {}", result);
+            }
+            TextSubCommand::Generate(opts) => {
+                let keys = process_text_generate_key(opts.format)?;
+
+                match opts.format {
+                    TextFormat::Blake3 => {
+                        let path = opts.output.join("blake3.txt");
+                        std::fs::write(path, &keys[0])?;
+                    }
+                    TextFormat::Ed25519 => {
+                        let path = &opts.output;
+                        let sk_path = path.join("ed25519.sk");
+                        let pk_path = path.join("ed25519.pk");
+
+                        std::fs::write(sk_path, &keys[0])?;
+                        std::fs::write(pk_path, &keys[1])?;
+                    }
+                }
             }
         },
     }

@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use clap::{Parser, Subcommand};
 mod b64;
@@ -40,6 +40,16 @@ pub fn validate_file(input: &str) -> Result<String, &'static str> {
         Ok(input.into())
     } else {
         Err("File Not Exists")
+    }
+}
+
+/// 验证路径
+pub fn validate_path(input: &str) -> Result<PathBuf, &'static str> {
+    let p = Path::new(input);
+    if p.exists() && p.is_dir() {
+        Ok(p.into())
+    } else {
+        Err("Path Not Exists or Not Directory")
     }
 }
 

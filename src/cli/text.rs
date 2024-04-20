@@ -1,25 +1,28 @@
 use std::{
     fmt::{self, Display, Formatter},
+    path::PathBuf,
     str::FromStr,
 };
 
 use clap::Parser;
 
-use super::validate_file;
+use super::{validate_file, validate_path};
 
 /// 文本签名子命令
 #[derive(Debug, Clone, Parser)]
 
 pub enum TextSubCommand {
     /// 签名
-    Sign(SignOpts),
+    Sign(TextSignOpts),
     /// 验证
-    Verify(VerifyOpts),
+    Verify(TextVerifyOpts),
+    /// 生成Key
+    Generate(TextKeyGenerateOpts),
 }
 
 /// 签名参数
 #[derive(Debug, Clone, Parser)]
-pub struct SignOpts {
+pub struct TextSignOpts {
     /// 内容
     #[arg(short, long,value_parser=validate_file,default_value="-")]
     pub input: String,
@@ -32,7 +35,7 @@ pub struct SignOpts {
 }
 /// 验证参数
 #[derive(Debug, Clone, Parser)]
-pub struct VerifyOpts {
+pub struct TextVerifyOpts {
     /// 内容
     #[arg(short, long,value_parser=validate_file,default_value="-")]
     pub input: String,
@@ -79,6 +82,16 @@ impl Display for TextFormat {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "{}", Into::<&'static str>::into(*self))
     }
+}
+
+#[derive(Debug, Clone, Parser)]
+pub struct TextKeyGenerateOpts {
+    /// 输出位置
+    #[arg(short,long,value_parser=validate_path)]
+    pub output: PathBuf,
+    /// 格式化方式
+    #[arg(long,value_parser=parse_format,default_value="blake3")]
+    pub format: TextFormat,
 }
 
 fn parse_format(s: &str) -> Result<TextFormat, anyhow::Error> {

@@ -383,6 +383,7 @@ checksum = "4a3daa8e81a3963a60642bcc1f90a670680bd4a77535faa384e9d1c79d620871"
 dependencies = [
  "curve25519-dalek",
  "ed25519",
+ "rand_core",
  "serde",
  "sha2",
  "subtle",
@@ -625,6 +626,7 @@ dependencies = [
  "csv",
  "ed25519-dalek",
  "rand",
+ "rand_core",
  "serde",
  "serde_json",
  "serde_yaml",
