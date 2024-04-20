@@ -1,6 +1,6 @@
 use anyhow::Result;
 
-use crate::opts::OutputFormat;
+use crate::cli::OutputFormat;
 
 /// 转换数据
 pub fn process_csv(input: &str, output: &str, format: OutputFormat) -> Result<()> {
