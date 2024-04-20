@@ -9,7 +9,11 @@ fn main() -> Result<()> {
     // 匹配子命令
     match opts.command {
         // 匹配CSV
-        SubCommand::Csv(opts) => process_csv(&opts.input, &opts.output)?,
+        SubCommand::Csv(opts) => {
+            let output = opts.output.unwrap_or_else(|| "output".to_string());
+            let output = format!("{}.{}", output, opts.format);
+            process_csv(&opts.input, &output, opts.format)?;
+        }
     }
 
     Ok(())
