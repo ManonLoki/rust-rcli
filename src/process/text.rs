@@ -2,6 +2,7 @@ use std::path::Path;
 
 use crate::{get_reader, TextFormat};
 use anyhow::Result;
+use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use chacha20poly1305::{
     aead::{Aead, AeadCore, KeyInit, OsRng},
     ChaCha20Poly1305,
@@ -218,26 +219,33 @@ impl KeyGenerate for Chacha20 {
 
 impl TextEncrypt for Chacha20 {
     fn encrypt(&self, reader: &mut dyn std::io::Read) -> Result<Vec<u8>> {
-        let mut buf = Vec::new();
-        reader.read_to_end(&mut buf)?;
+        let mut buf = String::new();
+        reader.read_to_string(&mut buf)?;
+        let buf = buf.trim().as_bytes();
 
         let cipher = ChaCha20Poly1305::new(&self.key);
         let nonce = ChaCha20Poly1305::generate_nonce(&mut OsRng);
         let cipher_text = cipher
-            .encrypt(&nonce, buf.as_slice())
+            .encrypt(&nonce, buf)
             .map_err(|e| anyhow::anyhow!(e))?;
 
         // 将nonce和cipher_text合并
-        let mut nonce = nonce.to_vec();
-        nonce.extend_from_slice(&cipher_text);
-        Ok(nonce)
+        let mut merged_nonce = nonce.to_vec();
+        merged_nonce.extend_from_slice(&cipher_text);
+
+        println!("{:?}", merged_nonce);
+        Ok(merged_nonce)
     }
 }
 
 impl TextDecrypt for Chacha20 {
     fn decrypt(&self, reader: &mut dyn std::io::Read) -> Result<Vec<u8>> {
-        let mut buf = Vec::new();
-        reader.read_to_end(&mut buf)?;
+        let mut buf = String::new();
+        reader.read_to_string(&mut buf)?;
+        let buf = buf.trim();
+        // 得先解密
+        let buf = URL_SAFE_NO_PAD.decode(buf)?;
+        println!("{:?}", buf);
 
         // 头12位是nonce 之后的是cipher_text
         let nonce = &buf[0..12];
@@ -360,8 +368,10 @@ mod tests {
         let encryptor: Chacha20 = Chacha20::load_key(key)?;
         let cipher_text = encryptor.encrypt(&mut &data[..])?;
 
+        let cipher_text = URL_SAFE_NO_PAD.encode(cipher_text);
+
         let encryptor: Chacha20 = Chacha20::load_key(key)?;
-        let res = encryptor.decrypt(&mut &cipher_text[..])?;
+        let res = encryptor.decrypt(&mut &cipher_text.as_bytes()[..])?;
         assert_eq!(res, data);
         Ok(())
     }

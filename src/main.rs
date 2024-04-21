@@ -88,7 +88,7 @@ async fn main() -> Result<()> {
             }
             TextSubCommand::Decrypt(opts) => {
                 let result = process_text_decrypt(&opts.key, &opts.input, opts.format)?;
-                let result = URL_SAFE_NO_PAD.encode(result);
+                let result = String::from_utf8_lossy(&result);
                 tracing::info!("解密结果: {}", result);
             }
         },
