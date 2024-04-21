@@ -2,15 +2,19 @@ use anyhow::Result;
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use clap::Parser;
 use rcli::{
-    process_csv, process_decode, process_encode, process_gen_pass, process_text_decrypt,
-    process_text_encrypt, process_text_generate_key, process_text_sign, process_text_verify,
-    B64SubCommand, Opts, SubCommand, TextFormat, TextSubCommand,
+    process_csv, process_decode, process_encode, process_gen_pass, process_http_serve,
+    process_text_decrypt, process_text_encrypt, process_text_generate_key, process_text_sign,
+    process_text_verify, B64SubCommand, HttpServeSubcommand, Opts, SubCommand, TextFormat,
+    TextSubCommand,
 };
 use zxcvbn::zxcvbn;
 
-fn main() -> Result<()> {
+#[tokio::main]
+async fn main() -> Result<()> {
     // 转换命令行
     let opts = Opts::parse();
+    // 加入日志
+    tracing_subscriber::fmt::init();
 
     // 匹配子命令
     match opts.command {
@@ -28,31 +32,31 @@ fn main() -> Result<()> {
                 opts.no_upper,
                 opts.no_lower,
             )?;
-            println!("Generated Password: {}", password);
+            tracing::info!("Generated Password: {}", password);
             let entropy = zxcvbn(&password, &[])?;
-            println!("Password Strength: {}", entropy.score());
+            tracing::info!("Password Strength: {}", entropy.score());
         }
         SubCommand::Base64(sub_command) => match sub_command {
             B64SubCommand::Encode(opts) => {
                 let encoede = process_encode(&opts.input, opts.format)?;
-                println!("Encoded Base64: {}", encoede);
+                tracing::info!("Encoded Base64: {}", encoede);
             }
             B64SubCommand::Decode(opts) => {
                 let decoded = process_decode(&opts.input, opts.format)?;
-                println!("Decoded Base64: {:?}", String::from_utf8_lossy(&decoded));
+                tracing::info!("Decoded Base64: {:?}", String::from_utf8_lossy(&decoded));
             }
         },
         SubCommand::Text(sub_command) => match sub_command {
             TextSubCommand::Sign(opts) => {
                 let result = process_text_sign(&opts.key, &opts.input, opts.format)?;
                 let result = URL_SAFE_NO_PAD.encode(result);
-                println!("签名结果: {}", result);
+                tracing::info!("签名结果: {}", result);
             }
             TextSubCommand::Verify(opts) => {
                 // 解出签名
                 let sig = URL_SAFE_NO_PAD.decode(&opts.sig)?;
                 let result = process_text_verify(&opts.key, &opts.input, opts.format, &sig)?;
-                println!("验证结果: {}", result);
+                tracing::info!("验证结果: {}", result);
             }
             TextSubCommand::Generate(opts) => {
                 let keys = process_text_generate_key(opts.format)?;
@@ -80,12 +84,17 @@ fn main() -> Result<()> {
             TextSubCommand::Encrypt(opts) => {
                 let result = process_text_encrypt(&opts.key, &opts.input, opts.format)?;
                 let result = URL_SAFE_NO_PAD.encode(result);
-                println!("加密结果: {}", result);
+                tracing::info!("加密结果: {}", result);
             }
             TextSubCommand::Decrypt(opts) => {
                 let result = process_text_decrypt(&opts.key, &opts.input, opts.format)?;
                 let result = URL_SAFE_NO_PAD.encode(result);
-                println!("解密结果: {}", result);
+                tracing::info!("解密结果: {}", result);
+            }
+        },
+        SubCommand::Http(opts) => match opts {
+            HttpServeSubcommand::Serve(opts) => {
+                process_http_serve(opts.port, opts.dir).await?;
             }
         },
     }

@@ -47,13 +47,13 @@ mod tests {
 
     #[test]
     fn test_encode() {
-        assert!(process_encode("fixture/b64_origin.txt", B64Format::Standard).is_ok());
-        assert!(process_encode("fixture/b64_origin.txt", B64Format::UrlSafe).is_ok());
+        assert!(process_encode("fixtures/b64_origin.txt", B64Format::Standard).is_ok());
+        assert!(process_encode("fixtures/b64_origin.txt", B64Format::UrlSafe).is_ok());
     }
 
     #[test]
     fn test_decode() {
-        assert!(process_decode("fixture/b64_standard.txt", B64Format::Standard).is_ok());
-        assert!(process_decode("fixture/b64_urlsafe.txt", B64Format::UrlSafe).is_ok());
+        assert!(process_decode("fixtures/b64_standard.txt", B64Format::Standard).is_ok());
+        assert!(process_decode("fixtures/b64_urlsafe.txt", B64Format::UrlSafe).is_ok());
     }
 }

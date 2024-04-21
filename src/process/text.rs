@@ -66,7 +66,8 @@ impl Blake3 {
 impl KeyLoader for Blake3 {
     fn load_key(key: impl AsRef<Path>) -> Result<Self> {
         let key = std::fs::read(key)?;
-        Self::try_new(&key)
+
+        Self::try_new(&key[..32])
     }
 }
 impl KeyGenerate for Blake3 {
@@ -329,7 +330,7 @@ mod tests {
 
     #[test]
     fn test_blake3_sign_verify() -> Result<()> {
-        let signer = Blake3::load_key("fixture/blake3.txt").unwrap();
+        let signer = Blake3::load_key("fixtures/blake3.txt").unwrap();
         let data = b"hello world";
         let sig = signer.sign(&mut &data[..]).unwrap();
 
@@ -340,11 +341,11 @@ mod tests {
 
     #[test]
     fn test_ed25519_sign_verify() -> Result<()> {
-        let signer = Ed25519Singer::load_key("fixture/ed25519.sk")?;
+        let signer = Ed25519Singer::load_key("fixtures/ed25519.sk")?;
         let data = b"hello world";
         let sig = signer.sign(&mut &data[..])?;
 
-        let verifier = Ed25519Verifier::load_key("fixture/ed25519.pk")?;
+        let verifier = Ed25519Verifier::load_key("fixtures/ed25519.pk")?;
         assert!(verifier.verify(&mut &data[..], &sig)?);
 
         Ok(())
@@ -352,7 +353,7 @@ mod tests {
 
     #[test]
     fn test_chacha20_encrypt_decrypt() -> Result<()> {
-        let key = "fixture/chacha20.txt";
+        let key = "fixtures/chacha20.txt";
         let data = b"Cargo.toml";
         let encryptor: Chacha20 = Chacha20::load_key(key)?;
         let cipher_text = encryptor.encrypt(&mut &data[..])?;

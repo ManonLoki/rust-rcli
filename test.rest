@@ -1,0 +1,8 @@
+### Test Serve Dir
+GET http://127.0.0.1:8080/tower/Cargo.toml HTTP/2
+
+### Test Origin File
+GET http://127.0.0.1:8080/origin/Cargo.toml HTTP/2
+
+### Test Origin Dir With Index.html
+GET http://127.0.0.1:8080/origin/fixtures/ HTTP/2

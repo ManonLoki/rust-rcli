@@ -4,11 +4,13 @@ use clap::{Parser, Subcommand};
 mod b64;
 mod csv;
 mod gen_pass;
+mod http;
 mod text;
 use self::{csv::CsvOpts, gen_pass::GenPassOpts};
 pub use {
-    self::csv::OutputFormat,
     b64::{B64Format, B64SubCommand},
+    csv::OutputFormat,
+    http::HttpServeSubcommand,
     text::{TextFormat, TextSubCommand},
 };
 /// 应用程序命令行
@@ -32,6 +34,9 @@ pub enum SubCommand {
     /// 文本签名
     #[clap(subcommand)]
     Text(TextSubCommand),
+    /// Http服务
+    #[clap(subcommand)]
+    Http(HttpServeSubcommand),
 }
 
 /// 验证输入文件
