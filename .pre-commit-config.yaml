@@ -36,7 +36,7 @@ repos:
         description: check typo
         entry: bash -c 'typos'
         language: rust
-        files: \.*$
+        files: \.rs$
         pass_filenames: false
       - id: cargo-check
         name: cargo check
