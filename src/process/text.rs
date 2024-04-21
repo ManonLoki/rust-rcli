@@ -233,8 +233,10 @@ impl TextEncrypt for Chacha20 {
         let mut merged_nonce = nonce.to_vec();
         merged_nonce.extend_from_slice(&cipher_text);
 
-        println!("{:?}", merged_nonce);
-        Ok(merged_nonce)
+        // Base64
+        let merged_nonce = URL_SAFE_NO_PAD.encode(merged_nonce);
+
+        Ok(merged_nonce.as_bytes().to_vec())
     }
 }
 
@@ -245,7 +247,6 @@ impl TextDecrypt for Chacha20 {
         let buf = buf.trim();
         // 得先解密
         let buf = URL_SAFE_NO_PAD.decode(buf)?;
-        println!("{:?}", buf);
 
         // 头12位是nonce 之后的是cipher_text
         let nonce = &buf[0..12];
@@ -367,11 +368,8 @@ mod tests {
         let data = b"Cargo.toml";
         let encryptor: Chacha20 = Chacha20::load_key(key)?;
         let cipher_text = encryptor.encrypt(&mut &data[..])?;
-
-        let cipher_text = URL_SAFE_NO_PAD.encode(cipher_text);
-
         let encryptor: Chacha20 = Chacha20::load_key(key)?;
-        let res = encryptor.decrypt(&mut &cipher_text.as_bytes()[..])?;
+        let res = encryptor.decrypt(&mut &cipher_text[..])?;
         assert_eq!(res, data);
         Ok(())
     }
