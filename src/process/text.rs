@@ -189,35 +189,29 @@ impl TextVerify for Ed25519Verifier {
 #[derive(Debug)]
 pub struct Chacha20 {
     key: chacha20poly1305::Key,
-    nonce: chacha20poly1305::Nonce,
 }
 
 impl Chacha20 {
-    fn new(key: chacha20poly1305::Key, nonce: chacha20poly1305::Nonce) -> Self {
-        Self { key, nonce }
+    fn new(key: chacha20poly1305::Key) -> Self {
+        Self { key }
     }
 
-    fn try_new(key: &[u8], nonce: &[u8]) -> Result<Self> {
+    fn try_new(key: &[u8]) -> Result<Self> {
         let key = chacha20poly1305::Key::from_slice(key);
-        let nonce = chacha20poly1305::Nonce::from_slice(nonce);
-        Ok(Self::new(key.to_owned(), nonce.to_owned()))
+        Ok(Self::new(key.to_owned()))
     }
 }
 impl KeyLoader for Chacha20 {
     fn load_key(key: impl AsRef<Path>) -> Result<Self> {
         let data = std::fs::read(key)?;
         let key = &data[0..32];
-        let nonce = &data[32..44];
-        Self::try_new(key, nonce)
+        Self::try_new(key)
     }
 }
 
 impl KeyGenerate for Chacha20 {
     fn generate_key() -> Result<Vec<Vec<u8>>> {
-        let mut rng = OsRng;
-        let mut key = ChaCha20Poly1305::generate_key(&mut rng).to_vec();
-        let mut nonce = ChaCha20Poly1305::generate_nonce(&mut rng).to_vec();
-        key.append(&mut nonce);
+        let key = ChaCha20Poly1305::generate_key(&mut OsRng).to_vec();
         Ok(vec![key])
     }
 }
@@ -228,11 +222,15 @@ impl TextEncrypt for Chacha20 {
         reader.read_to_end(&mut buf)?;
 
         let cipher = ChaCha20Poly1305::new(&self.key);
-        let nonce = chacha20poly1305::Nonce::from_slice(&self.nonce);
+        let nonce = ChaCha20Poly1305::generate_nonce(&mut OsRng);
         let cipher_text = cipher
-            .encrypt(nonce, buf.as_slice())
+            .encrypt(&nonce, buf.as_slice())
             .map_err(|e| anyhow::anyhow!(e))?;
-        Ok(cipher_text)
+
+        // 将nonce和cipher_text合并
+        let mut nonce = nonce.to_vec();
+        nonce.extend_from_slice(&cipher_text);
+        Ok(nonce)
     }
 }
 
@@ -240,11 +238,15 @@ impl TextDecrypt for Chacha20 {
     fn decrypt(&self, reader: &mut dyn std::io::Read) -> Result<Vec<u8>> {
         let mut buf = Vec::new();
         reader.read_to_end(&mut buf)?;
+
+        // 头12位是nonce 之后的是cipher_text
+        let nonce = &buf[0..12];
+        let cipher_text = &buf[12..];
         let cipher = ChaCha20Poly1305::new(&self.key);
-        let nonce = chacha20poly1305::Nonce::from_slice(&self.nonce);
+        let nonce = chacha20poly1305::Nonce::from_slice(nonce);
 
         let plain_text = cipher
-            .decrypt(nonce, buf.as_slice())
+            .decrypt(nonce, cipher_text)
             .map_err(|e| anyhow::anyhow!(e))?;
         Ok(plain_text)
     }
