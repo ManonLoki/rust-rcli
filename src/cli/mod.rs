@@ -1,15 +1,16 @@
+use anyhow::Result;
 use clap::{Parser, Subcommand};
 use std::path::{Path, PathBuf};
 mod b64;
 mod csv;
 mod gen_pass;
 mod http;
+mod jwt;
 mod text;
-use anyhow::Result;
 
 use crate::CmdExecutor;
 
-pub use {b64::*, csv::*, gen_pass::*, http::*, text::*};
+pub use {b64::*, csv::*, gen_pass::*, http::*, jwt::*, text::*};
 
 /// 应用程序命令行
 #[derive(Debug, Clone, Parser)]
@@ -37,20 +38,10 @@ pub enum SubCommand {
     /// Http服务
     #[clap(subcommand)]
     Http(HttpSubCommand),
+    /// Jwt签名及验证
+    #[clap(subcommand)]
+    Jwt(JwtSubCommand),
 }
-
-// /// 为SubCommand实现CmdExecutor
-// impl CmdExecutor for SubCommand {
-//     async fn execute(self) -> Result<()> {
-//         match self {
-//             SubCommand::Csv(opts) => opts.execute().await,
-//             SubCommand::GenPass(opts) => opts.execute().await,
-//             SubCommand::Base64(sub) => sub.execute().await,
-//             SubCommand::Text(sub) => sub.execute().await,
-//             SubCommand::Http(sub) => sub.execute().await,
-//         }
-//     }
-// }
 
 /// 验证输入文件
 pub fn validate_file(input: &str) -> Result<String> {
