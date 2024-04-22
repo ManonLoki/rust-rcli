@@ -40,7 +40,7 @@ pub struct TextSignOpts {
     #[arg(short, long,value_parser=validate_file)]
     pub key: String,
     /// 格式化方式
-    #[arg(long,value_parser=parse_format,default_value="blake3")]
+    #[arg(long, default_value = "blake3")]
     pub format: TextFormat,
 }
 
@@ -63,7 +63,7 @@ pub struct TextVerifyOpts {
     #[arg(short, long,value_parser=validate_file)]
     pub key: String,
     /// 格式化方式
-    #[arg(long,value_parser = parse_format,default_value="blake3")]
+    #[arg(long, default_value = "blake3")]
     pub format: TextFormat,
     /// 签名
     #[arg(long)]
@@ -127,7 +127,7 @@ pub struct TextKeyGenerateOpts {
     #[arg(short,long,value_parser=validate_path)]
     pub output: PathBuf,
     /// 格式化方式
-    #[arg(long,value_parser=parse_format,default_value="blake3")]
+    #[arg(long, default_value = "blake3")]
     pub format: TextFormat,
 }
 
@@ -167,7 +167,7 @@ pub struct TextEncryptOpts {
     #[arg(short, long)]
     pub key: String,
     /// 格式化方式
-    #[arg(long,value_parser=parse_format,default_value="chacha20")]
+    #[arg(long, default_value = "chacha20")]
     pub format: TextFormat,
 }
 
@@ -190,7 +190,7 @@ pub struct TextDecryptOpts {
     #[arg(short, long)]
     pub key: String,
     /// 格式化方式
-    #[arg(long,value_parser=parse_format,default_value="chacha20")]
+    #[arg(long, default_value = "chacha20")]
     pub format: TextFormat,
 }
 
@@ -213,9 +213,4 @@ impl CmdExecutor for TextSubCommand {
             TextSubCommand::Decrypt(opts) => opts.execute().await,
         }
     }
-}
-
-/// 转换Format
-fn parse_format(s: &str) -> Result<TextFormat, anyhow::Error> {
-    s.parse()
 }
