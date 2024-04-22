@@ -1,12 +1,18 @@
+use anyhow::Result;
+use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
+use clap::Parser;
 use std::{
     fmt::{self, Display, Formatter},
     path::PathBuf,
     str::FromStr,
 };
 
-use clap::Parser;
+use crate::{
+    process_text_decrypt, process_text_encrypt, process_text_generate_key, process_text_sign,
+    process_text_verify,
+};
 
-use super::{validate_file, validate_path};
+use super::{validate_file, validate_path, CmdExecutor};
 
 /// 文本签名子命令
 #[derive(Debug, Clone, Parser)]
@@ -37,6 +43,16 @@ pub struct TextSignOpts {
     #[arg(long,value_parser=parse_format,default_value="blake3")]
     pub format: TextFormat,
 }
+
+impl CmdExecutor for TextSignOpts {
+    async fn execute(self) -> Result<()> {
+        let result = process_text_sign(&self.key, &self.input, self.format)?;
+        let result = URL_SAFE_NO_PAD.encode(result);
+        tracing::info!("签名结果: {}", result);
+        Ok(())
+    }
+}
+
 /// 验证参数
 #[derive(Debug, Clone, Parser)]
 pub struct TextVerifyOpts {
@@ -54,11 +70,24 @@ pub struct TextVerifyOpts {
     pub sig: String,
 }
 
+impl CmdExecutor for TextVerifyOpts {
+    async fn execute(self) -> Result<()> {
+        // 解出签名
+        let sig = URL_SAFE_NO_PAD.decode(&self.sig)?;
+        let result = process_text_verify(&self.key, &self.input, self.format, &sig)?;
+        tracing::info!("验证结果: {}", result);
+        Ok(())
+    }
+}
+
 /// 格式化方式
 #[derive(Debug, Clone, Copy)]
 pub enum TextFormat {
+    /// Blake3 方式，支持签名和验证
     Blake3,
+    /// Ed25519 方式，支持签名和验证
     Ed25519,
+    /// Chacha20 支持加密和解密
     ChaCha20,
 }
 
@@ -102,7 +131,33 @@ pub struct TextKeyGenerateOpts {
     pub format: TextFormat,
 }
 
-/// 文本加/解密选项
+impl CmdExecutor for TextKeyGenerateOpts {
+    async fn execute(self) -> Result<()> {
+        let keys = process_text_generate_key(self.format)?;
+
+        match self.format {
+            TextFormat::Blake3 => {
+                let path = self.output.join("blake3.txt");
+                std::fs::write(path, &keys[0])?;
+            }
+            TextFormat::Ed25519 => {
+                let path = &self.output;
+                let sk_path = path.join("ed25519.sk");
+                let pk_path = path.join("ed25519.pk");
+
+                std::fs::write(sk_path, &keys[0])?;
+                std::fs::write(pk_path, &keys[1])?;
+            }
+            TextFormat::ChaCha20 => {
+                let path = &self.output.join("chacha20.txt");
+                std::fs::write(path, &keys[0])?;
+            }
+        }
+        Ok(())
+    }
+}
+
+/// 文本加密选项
 #[derive(Debug, Clone, Parser)]
 pub struct TextEncryptOpts {
     /// 输入
@@ -114,6 +169,50 @@ pub struct TextEncryptOpts {
     /// 格式化方式
     #[arg(long,value_parser=parse_format,default_value="chacha20")]
     pub format: TextFormat,
+}
+
+impl CmdExecutor for TextEncryptOpts {
+    async fn execute(self) -> Result<()> {
+        let result = process_text_encrypt(&self.key, &self.input, self.format)?;
+        let result = String::from_utf8(result)?;
+        tracing::info!("加密结果: {}", result);
+        Ok(())
+    }
+}
+
+/// 文本解密选项
+#[derive(Debug, Clone, Parser)]
+pub struct TextDecryptOpts {
+    /// 输入
+    #[arg(short,long,value_parser=validate_file,default_value="-")]
+    pub input: String,
+    /// Key 这里不从文件读取了
+    #[arg(short, long)]
+    pub key: String,
+    /// 格式化方式
+    #[arg(long,value_parser=parse_format,default_value="chacha20")]
+    pub format: TextFormat,
+}
+
+impl CmdExecutor for TextDecryptOpts {
+    async fn execute(self) -> Result<()> {
+        let result = process_text_decrypt(&self.key, &self.input, self.format)?;
+        let result = String::from_utf8(result)?;
+        tracing::info!("解密结果: {}", result);
+        Ok(())
+    }
+}
+
+impl CmdExecutor for TextSubCommand {
+    async fn execute(self) -> Result<()> {
+        match self {
+            TextSubCommand::Sign(opts) => opts.execute().await,
+            TextSubCommand::Verify(opts) => opts.execute().await,
+            TextSubCommand::Generate(opts) => opts.execute().await,
+            TextSubCommand::Encrypt(opts) => opts.execute().await,
+            TextSubCommand::Decrypt(opts) => opts.execute().await,
+        }
+    }
 }
 
 /// 转换Format

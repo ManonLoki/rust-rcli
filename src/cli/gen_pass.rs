@@ -1,6 +1,12 @@
 use clap::Parser;
 
-/// 密码生成
+use crate::process_gen_pass;
+
+use super::CmdExecutor;
+use anyhow::Result;
+use zxcvbn::zxcvbn;
+
+/// 生成密码选项
 #[derive(Debug, Clone, Parser)]
 pub struct GenPassOpts {
     /// 密码长度
@@ -18,4 +24,21 @@ pub struct GenPassOpts {
     /// 是否不包含小写字母
     #[arg(long, default_value_t = false)]
     pub no_lower: bool,
+}
+
+/// 实现执行逻辑
+impl CmdExecutor for GenPassOpts {
+    async fn execute(self) -> Result<()> {
+        let password = process_gen_pass(
+            self.length,
+            self.no_number,
+            self.no_special,
+            self.no_upper,
+            self.no_lower,
+        )?;
+        tracing::info!("Generated Password: {}", password);
+        let entropy = zxcvbn(&password, &[])?;
+        tracing::info!("Password Strength: {}", entropy.score());
+        Ok(())
+    }
 }
