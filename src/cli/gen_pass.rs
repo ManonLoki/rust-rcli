@@ -36,9 +36,9 @@ impl CmdExecutor for GenPassOpts {
             self.no_upper,
             self.no_lower,
         )?;
-        tracing::info!("Generated Password: {}", password);
+        println!("Generated Password: {}", password);
         let entropy = zxcvbn(&password, &[])?;
-        tracing::info!("Password Strength: {}", entropy.score());
+        println!("Password Strength: {}", entropy.score());
         Ok(())
     }
 }

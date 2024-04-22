@@ -39,7 +39,7 @@ pub struct B64EncodeOpts {
 impl CmdExecutor for B64EncodeOpts {
     async fn execute(self) -> Result<()> {
         let encoede = process_encode(&self.input, self.format)?;
-        tracing::info!("Encoded Base64: {}", encoede);
+        println!("Encoded Base64: {}", encoede);
         Ok(())
     }
 }
@@ -57,7 +57,7 @@ pub struct B64DecodeOpts {
 impl CmdExecutor for B64DecodeOpts {
     async fn execute(self) -> Result<()> {
         let decoded = process_decode(&self.input, self.format)?;
-        tracing::info!("Decoded Base64: {:?}", String::from_utf8_lossy(&decoded));
+        println!("Decoded Base64: {:?}", String::from_utf8_lossy(&decoded));
         Ok(())
     }
 }

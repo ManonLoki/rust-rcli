@@ -34,7 +34,8 @@ pub async fn process_http_serve(port: u16, path: PathBuf) -> Result<()> {
     // 创建路由
     let app = Router::new()
         .nest_service("/tower", serve_dir_service)
-        .route("/origin/*path", get(handle_dir))
+        .route("/origin", get(handle_root_path))
+        .route("/origin/*path", get(handle_combine_path))
         .with_state(state);
 
     // 创建TcpListener
@@ -46,13 +47,29 @@ pub async fn process_http_serve(port: u16, path: PathBuf) -> Result<()> {
     Ok(())
 }
 
-// 处理DIR
-async fn handle_dir(
-    State(state): State<Arc<HttpServeState>>,
+/// 处理 /origin
+async fn handle_root_path(state: State<Arc<HttpServeState>>) -> Result<impl IntoResponse, String> {
+    handle_path(&state.path, None).await
+}
+/// 处理 /origin/*
+async fn handle_combine_path(
+    state: State<Arc<HttpServeState>>,
     Path(path): Path<String>,
 ) -> Result<impl IntoResponse, String> {
+    handle_path(&state.path, Some(path)).await
+}
+
+// 处理DIR
+async fn handle_path(
+    root_path: &PathBuf,
+    combine_path: Option<String>,
+) -> Result<impl IntoResponse, String> {
     // 完整路径
-    let full_path = state.path.join(&path);
+    let full_path = if let Some(path) = combine_path {
+        root_path.join(path)
+    } else {
+        root_path.clone()
+    };
 
     if !full_path.exists() {
         Err("Resource Not Found!".to_owned())
@@ -70,18 +87,20 @@ async fn handle_dir(
 
         let mut list = String::new();
 
+        // 遍历并生成
         while let Ok(entry) = entries.next_entry().await {
             if let Some(entry) = entry {
-                // 插入buf
+                // 链接插入列表
                 list.push_str(
                     format!(
-                        r#"<li><a href="/origin/{}">{}</li>"#,
+                        r#"<li><a href="/origin/{}">{}{}</li>"#,
                         entry
                             .path()
-                            .strip_prefix(&state.path)
+                            .strip_prefix(root_path)
                             .map_err(|e| e.to_string())?
                             .to_string_lossy(),
-                        entry.file_name().to_string_lossy()
+                        entry.file_name().to_string_lossy(),
+                        if entry.path().is_file() { "" } else { "/" }
                     )
                     .as_str(),
                 );
@@ -100,8 +119,7 @@ async fn handle_dir(
 <title>Contents</title>
 </head>
 <body>
- <ul>
-{}</ul>
+ <ul>{}</ul>
 </body>
 </html>
 "#,
