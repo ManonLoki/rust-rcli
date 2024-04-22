@@ -127,6 +127,7 @@ async fn handle_path(
                     })?
                     .to_string_lossy()
                     .to_string();
+                let link = format!("/origin/{}", link);
                 // 获取文本呢
                 let text = format!(
                     "{}{}",
