@@ -9,16 +9,11 @@ use anyhow::Result;
 
 use crate::CmdExecutor;
 
-use self::{csv::CsvOpts, gen_pass::GenPassOpts};
-pub use {
-    b64::{B64Format, B64SubCommand},
-    csv::OutputFormat,
-    http::HttpSubCommand,
-    text::{TextFormat, TextSubCommand},
-};
+pub use {b64::*, csv::*, gen_pass::*, http::*, text::*};
 
 /// 应用程序命令行
 #[derive(Debug, Clone, Parser)]
+
 pub struct Opts {
     /// 子命令
     #[command(subcommand)]
@@ -27,6 +22,7 @@ pub struct Opts {
 
 /// 子命令枚举 对应SubCommand
 #[derive(Debug, Clone, Subcommand)]
+#[enum_dispatch::enum_dispatch(CmdExecutor)]
 pub enum SubCommand {
     /// 将CSV转换为其他格式，如Json,Yaml
     Csv(CsvOpts),
@@ -43,18 +39,18 @@ pub enum SubCommand {
     Http(HttpSubCommand),
 }
 
-/// 为SubCommand实现CmdExecutor
-impl CmdExecutor for SubCommand {
-    async fn execute(self) -> Result<()> {
-        match self {
-            SubCommand::Csv(opts) => opts.execute().await,
-            SubCommand::GenPass(opts) => opts.execute().await,
-            SubCommand::Base64(sub) => sub.execute().await,
-            SubCommand::Text(sub) => sub.execute().await,
-            SubCommand::Http(sub) => sub.execute().await,
-        }
-    }
-}
+// /// 为SubCommand实现CmdExecutor
+// impl CmdExecutor for SubCommand {
+//     async fn execute(self) -> Result<()> {
+//         match self {
+//             SubCommand::Csv(opts) => opts.execute().await,
+//             SubCommand::GenPass(opts) => opts.execute().await,
+//             SubCommand::Base64(sub) => sub.execute().await,
+//             SubCommand::Text(sub) => sub.execute().await,
+//             SubCommand::Http(sub) => sub.execute().await,
+//         }
+//     }
+// }
 
 /// 验证输入文件
 pub fn validate_file(input: &str) -> Result<String> {

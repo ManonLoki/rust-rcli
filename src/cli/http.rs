@@ -6,18 +6,10 @@ use std::path::PathBuf;
 
 /// Http服务子命令
 #[derive(Debug, Clone, Parser)]
+#[enum_dispatch::enum_dispatch(CmdExecutor)]
 pub enum HttpSubCommand {
     /// 启动静态文件服务
     Serve(HttpServeOpts),
-}
-
-/// 为HttpServeSubCommand实现CmdExecutor
-impl CmdExecutor for HttpSubCommand {
-    async fn execute(self) -> Result<()> {
-        match self {
-            HttpSubCommand::Serve(opts) => opts.execute().await,
-        }
-    }
 }
 
 /// HTTP服务参数

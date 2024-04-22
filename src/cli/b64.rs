@@ -8,21 +8,12 @@ use super::{validate_file, CmdExecutor};
 
 /// Base64子命令
 #[derive(Debug, Clone, Parser)]
+#[enum_dispatch::enum_dispatch(CmdExecutor)]
 pub enum B64SubCommand {
     /// Base64编码
     Encode(B64EncodeOpts),
     /// Base64解码
     Decode(B64DecodeOpts),
-}
-
-/// 实现B64SubCommand的CmdExecutor
-impl CmdExecutor for B64SubCommand {
-    async fn execute(self) -> Result<()> {
-        match self {
-            B64SubCommand::Encode(opts) => opts.execute().await,
-            B64SubCommand::Decode(opts) => opts.execute().await,
-        }
-    }
 }
 
 /// Encode参数

@@ -16,7 +16,7 @@ use super::{validate_file, validate_path, CmdExecutor};
 
 /// 文本签名子命令
 #[derive(Debug, Clone, Parser)]
-
+#[enum_dispatch::enum_dispatch(CmdExecutor)]
 pub enum TextSubCommand {
     /// 签名
     Sign(TextSignOpts),
@@ -27,7 +27,7 @@ pub enum TextSubCommand {
     /// 加密
     Encrypt(TextEncryptOpts),
     /// 解密
-    Decrypt(TextEncryptOpts),
+    Decrypt(TextDecryptOpts),
 }
 
 /// 签名参数
@@ -200,17 +200,5 @@ impl CmdExecutor for TextDecryptOpts {
         let result = String::from_utf8(result)?;
         tracing::info!("解密结果: {}", result);
         Ok(())
-    }
-}
-
-impl CmdExecutor for TextSubCommand {
-    async fn execute(self) -> Result<()> {
-        match self {
-            TextSubCommand::Sign(opts) => opts.execute().await,
-            TextSubCommand::Verify(opts) => opts.execute().await,
-            TextSubCommand::Generate(opts) => opts.execute().await,
-            TextSubCommand::Encrypt(opts) => opts.execute().await,
-            TextSubCommand::Decrypt(opts) => opts.execute().await,
-        }
     }
 }
