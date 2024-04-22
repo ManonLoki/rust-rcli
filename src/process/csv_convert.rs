@@ -30,7 +30,7 @@ pub fn process_csv(input: &str, output: &str, format: OutputFormat) -> Result<()
     let content = match format {
         OutputFormat::Json => serde_json::to_string_pretty(&record)?,
         OutputFormat::Yaml => serde_yaml::to_string(&record)?,
-        OutputFormat::Toml => toml::to_string(&TomlWrapperRecord { data: record })?,
+        OutputFormat::Toml => toml::to_string_pretty(&TomlWrapperRecord { data: record })?,
     };
 
     // 将结果写入文件
