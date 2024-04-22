@@ -24,6 +24,7 @@ serde_json = "1.0.115"
 serde_yaml = "0.9.34"
 tera = "1.19.1"
 tokio = { version = "1.37.0", features = ["fs", "macros", "net", "rt", "rt-multi-thread"] }
+toml = "0.8.12"
 tower = "0.4.13"
 tower-http = { version = "0.5.2", features = ["fs", "cors", "trace"] }
 tracing = "0.1.40"

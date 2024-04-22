@@ -43,6 +43,8 @@ pub enum OutputFormat {
     Json,
     /// Yaml格式
     Yaml,
+    /// Toml格式
+    Toml,
 }
 
 /// 实现将OutputFormat转换为&'static str
@@ -51,6 +53,7 @@ impl From<OutputFormat> for &'static str {
         match value {
             OutputFormat::Json => "json",
             OutputFormat::Yaml => "yaml",
+            OutputFormat::Toml => "toml",
         }
     }
 }
@@ -63,6 +66,7 @@ impl FromStr for OutputFormat {
         match s.as_str() {
             "json" => Ok(OutputFormat::Json),
             "yaml" => Ok(OutputFormat::Yaml),
+            "toml" => Ok(OutputFormat::Toml),
             _ => Err(anyhow::anyhow!("Invalid Format")),
         }
     }

@@ -1,6 +1,12 @@
 use anyhow::Result;
+use serde::Serialize;
 
 use crate::cli::OutputFormat;
+
+#[derive(Debug, Serialize)]
+pub struct TomlWrapperRecord {
+    pub data: Vec<serde_json::Value>,
+}
 
 /// 转换数据
 pub fn process_csv(input: &str, output: &str, format: OutputFormat) -> Result<()> {
@@ -24,6 +30,7 @@ pub fn process_csv(input: &str, output: &str, format: OutputFormat) -> Result<()
     let content = match format {
         OutputFormat::Json => serde_json::to_string_pretty(&record)?,
         OutputFormat::Yaml => serde_yaml::to_string(&record)?,
+        OutputFormat::Toml => toml::to_string(&TomlWrapperRecord { data: record })?,
     };
 
     // 将结果写入文件
