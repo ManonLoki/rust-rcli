@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>文件列表</title>
+        <style>
+            ul {
+                list-style-type: none;
+            }
+            li {
+                margin: 10px 0;
+            }
+        </style>
+    </head>
+    <body>
+        <ul>
+            {% for item in list %}
+                <li>
+                    <a href="{{ item.link }}">{{ item.text }}</a>
+                </li>
+            {% endfor %}
+        </ul>
+    </body>
+</html>

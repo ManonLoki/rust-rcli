@@ -174,7 +174,6 @@ pub struct TextEncryptOpts {
 impl CmdExecutor for TextEncryptOpts {
     async fn execute(self) -> Result<()> {
         let result = process_text_encrypt(&self.key, &self.input, self.format)?;
-        let result = String::from_utf8(result)?;
         tracing::info!("加密结果: {}", result);
         Ok(())
     }
@@ -197,7 +196,6 @@ pub struct TextDecryptOpts {
 impl CmdExecutor for TextDecryptOpts {
     async fn execute(self) -> Result<()> {
         let result = process_text_decrypt(&self.key, &self.input, self.format)?;
-        let result = String::from_utf8(result)?;
         tracing::info!("解密结果: {}", result);
         Ok(())
     }

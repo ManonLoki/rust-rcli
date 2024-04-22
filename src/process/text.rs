@@ -36,16 +36,16 @@ pub trait KeyGenerate {
     fn generate_key() -> Result<Vec<Vec<u8>>>;
 }
 
-/// 定义加密Trait
+/// 定义加密Trait 因为最终输出结果应该是base64的，所以这里的输出是String
 pub trait TextEncrypt {
     /// 加密
-    fn encrypt(&self, reader: &mut dyn std::io::Read) -> Result<Vec<u8>>;
+    fn encrypt(&self, reader: &mut dyn std::io::Read) -> Result<String>;
 }
 
-/// 定义解密Trait
+/// 定义解密Trait 同上这里也应该输出是string
 pub trait TextDecrypt {
     /// 解密
-    fn decrypt(&self, reader: &mut dyn std::io::Read) -> Result<Vec<u8>>;
+    fn decrypt(&self, reader: &mut dyn std::io::Read) -> Result<String>;
 }
 
 /// Blake3签名
@@ -218,7 +218,7 @@ impl KeyGenerate for Chacha20 {
 }
 
 impl TextEncrypt for Chacha20 {
-    fn encrypt(&self, reader: &mut dyn std::io::Read) -> Result<Vec<u8>> {
+    fn encrypt(&self, reader: &mut dyn std::io::Read) -> Result<String> {
         let mut buf = String::new();
         reader.read_to_string(&mut buf)?;
         let buf = buf.trim().as_bytes();
@@ -235,19 +235,17 @@ impl TextEncrypt for Chacha20 {
 
         // Base64
         let merged_nonce = URL_SAFE_NO_PAD.encode(merged_nonce);
-
-        Ok(merged_nonce.as_bytes().to_vec())
+        Ok(merged_nonce)
     }
 }
 
 impl TextDecrypt for Chacha20 {
-    fn decrypt(&self, reader: &mut dyn std::io::Read) -> Result<Vec<u8>> {
+    fn decrypt(&self, reader: &mut dyn std::io::Read) -> Result<String> {
         let mut buf = String::new();
         reader.read_to_string(&mut buf)?;
         let buf = buf.trim();
         // 得先解密
         let buf = URL_SAFE_NO_PAD.decode(buf)?;
-
         // 头12位是nonce 之后的是cipher_text
         let nonce = &buf[0..12];
         let cipher_text = &buf[12..];
@@ -257,6 +255,8 @@ impl TextDecrypt for Chacha20 {
         let plain_text = cipher
             .decrypt(nonce, cipher_text)
             .map_err(|e| anyhow::anyhow!(e))?;
+
+        let plain_text = String::from_utf8(plain_text)?;
         Ok(plain_text)
     }
 }
@@ -314,7 +314,7 @@ pub fn process_text_generate_key(format: TextFormat) -> Result<Vec<Vec<u8>>> {
 }
 
 /// 加密
-pub fn process_text_encrypt(key: &str, input: &str, format: TextFormat) -> Result<Vec<u8>> {
+pub fn process_text_encrypt(key: &str, input: &str, format: TextFormat) -> Result<String> {
     let mut reader = get_reader(input)?;
     let encryptor = Chacha20::load_key(key)?;
 
@@ -325,7 +325,7 @@ pub fn process_text_encrypt(key: &str, input: &str, format: TextFormat) -> Resul
 }
 
 /// 解密
-pub fn process_text_decrypt(key: &str, input: &str, format: TextFormat) -> Result<Vec<u8>> {
+pub fn process_text_decrypt(key: &str, input: &str, format: TextFormat) -> Result<String> {
     let mut reader = get_reader(input)?;
     let decrypter = Chacha20::load_key(key)?;
 
@@ -339,6 +339,7 @@ pub fn process_text_decrypt(key: &str, input: &str, format: TextFormat) -> Resul
 mod tests {
     use super::*;
 
+    /// 测试Blake3签名和验证
     #[test]
     fn test_blake3_sign_verify() -> Result<()> {
         let signer = Blake3::load_key("fixtures/blake3.txt").unwrap();
@@ -350,27 +351,28 @@ mod tests {
         Ok(())
     }
 
+    /// 测试Ed25519签名和验证
     #[test]
     fn test_ed25519_sign_verify() -> Result<()> {
         let signer = Ed25519Singer::load_key("fixtures/ed25519.sk")?;
         let data = b"hello world";
         let sig = signer.sign(&mut &data[..])?;
-
         let verifier = Ed25519Verifier::load_key("fixtures/ed25519.pk")?;
         assert!(verifier.verify(&mut &data[..], &sig)?);
-
         Ok(())
     }
 
+    /// 测试Chacha20加密和解密
     #[test]
     fn test_chacha20_encrypt_decrypt() -> Result<()> {
         let key = "fixtures/chacha20.txt";
-        let data = b"Cargo.toml";
+        let data = "hello world";
         let encryptor: Chacha20 = Chacha20::load_key(key)?;
-        let cipher_text = encryptor.encrypt(&mut &data[..])?;
+        let cipher_text = encryptor.encrypt(&mut &data.as_bytes()[..])?;
         let encryptor: Chacha20 = Chacha20::load_key(key)?;
+        let cipher_text = cipher_text.as_bytes();
         let res = encryptor.decrypt(&mut &cipher_text[..])?;
-        assert_eq!(res, data);
+        assert_eq!(res.as_str(), data);
         Ok(())
     }
 }
