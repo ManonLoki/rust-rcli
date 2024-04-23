@@ -57,30 +57,15 @@ impl CmdExecutor for JwtVerifyOpts {
 
 /// 转换过期时间
 fn parse_exp(exp: &str) -> Result<usize> {
-    let mut num = 0;
-    let mut unit = 's';
-    // 遍历字符，解析数字和单位
-    for c in exp.chars() {
-        if c.is_ascii_digit() {
-            num = num * 10 + c.to_digit(10).unwrap() as usize;
-        } else {
-            unit = c;
-        }
+    match fancy_duration::FancyDuration::<std::time::Duration>::parse(exp) {
+        Ok(d) => Ok(d.0.as_secs() as usize),
+        Err(_) => Err(anyhow::anyhow!("invalid unit: {}", exp)),
     }
-    let exp = match unit {
-        's' => num,
-        'm' => num * 60,
-        'h' => num * 60 * 60,
-        'd' => num * 60 * 60 * 24,
-        _ => return Err(anyhow::anyhow!("invalid unit: {}", unit)),
-    };
-    Ok(exp)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-
     /// 测试日期转换
     #[test]
     fn test_parse_exp() {
