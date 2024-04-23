@@ -14,7 +14,13 @@ pub use {b64::*, csv::*, gen_pass::*, http::*, jwt::*, text::*};
 
 /// 应用程序命令行
 #[derive(Debug, Clone, Parser)]
-
+#[clap(
+    version,
+    author = "manonloki",
+    about,
+    help_template = "{before-help} {name} {version} {author-with-newline} {about-with-newline}
+{usage-heading} {usage}{all-args} {after-help}"
+)]
 pub struct Opts {
     /// 子命令
     #[command(subcommand)]
