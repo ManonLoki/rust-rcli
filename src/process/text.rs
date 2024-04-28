@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::{collections::HashMap, path::Path};
 
 use crate::{get_reader, TextFormat};
 use anyhow::Result;
@@ -33,7 +33,7 @@ pub trait KeyLoader {
 /// 定义生成Key Trait
 pub trait KeyGenerate {
     /// 生成Key
-    fn generate_key() -> Result<Vec<Vec<u8>>>;
+    fn generate_key() -> Result<HashMap<&'static str, Vec<u8>>>;
 }
 
 /// 定义加密Trait 因为最终输出结果应该是base64的，所以这里的输出是String
@@ -72,9 +72,11 @@ impl KeyLoader for Blake3 {
     }
 }
 impl KeyGenerate for Blake3 {
-    fn generate_key() -> Result<Vec<Vec<u8>>> {
+    fn generate_key() -> Result<HashMap<&'static str, Vec<u8>>> {
         let key = gen_pass::process_gen_pass(32, false, false, false, false)?;
-        Ok(vec![key.as_bytes().to_vec()])
+        let key = key.as_bytes().to_vec();
+
+        Ok(vec![("balke3.txt", key)].into_iter().collect())
     }
 }
 
@@ -130,12 +132,14 @@ impl KeyLoader for Ed25519Singer {
     }
 }
 impl KeyGenerate for Ed25519Singer {
-    fn generate_key() -> Result<Vec<Vec<u8>>> {
+    fn generate_key() -> Result<HashMap<&'static str, Vec<u8>>> {
         let mut csprng = OsRng;
         let sk = SigningKey::generate(&mut csprng);
         let pk = sk.verifying_key().to_bytes().to_vec();
         let sk = sk.to_bytes().to_vec();
-        Ok(vec![sk, pk])
+        Ok(vec![("ed25519.sk", sk), ("ed25519.pk", pk)]
+            .into_iter()
+            .collect())
     }
 }
 
@@ -211,9 +215,9 @@ impl KeyLoader for Chacha20 {
 }
 
 impl KeyGenerate for Chacha20 {
-    fn generate_key() -> Result<Vec<Vec<u8>>> {
+    fn generate_key() -> Result<HashMap<&'static str, Vec<u8>>> {
         let key = ChaCha20Poly1305::generate_key(&mut OsRng).to_vec();
-        Ok(vec![key])
+        Ok(vec![("chacha20.txt", key)].into_iter().collect())
     }
 }
 
@@ -303,7 +307,7 @@ pub fn process_text_verify(key: &str, input: &str, format: TextFormat, sig: &[u8
 }
 
 /// 生成Key
-pub fn process_text_generate_key(format: TextFormat) -> Result<Vec<Vec<u8>>> {
+pub fn process_text_generate_key(format: TextFormat) -> Result<HashMap<&'static str, Vec<u8>>> {
     let keys = match format {
         TextFormat::Blake3 => Blake3::generate_key()?,
         TextFormat::Ed25519 => Ed25519Singer::generate_key()?,

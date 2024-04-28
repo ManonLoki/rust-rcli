@@ -20,6 +20,13 @@ repos:
       - id: cargo-fmt
         name: cargo fmt
         description: Format files with rustfmt.
+        entry: bash -c 'cargo fmt'
+        language: rust
+        files: \.rs$
+        args: []
+      - id: cargo-fmt-check
+        name: cargo fmt check
+        description: Check Format files with rustfmt.
         entry: bash -c 'cargo fmt -- --check'
         language: rust
         files: \.rs$

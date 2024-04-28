@@ -135,23 +135,9 @@ impl CmdExecutor for TextKeyGenerateOpts {
     async fn execute(self) -> Result<()> {
         let keys = process_text_generate_key(self.format)?;
 
-        match self.format {
-            TextFormat::Blake3 => {
-                let path = self.output.join("blake3.txt");
-                std::fs::write(path, &keys[0])?;
-            }
-            TextFormat::Ed25519 => {
-                let path = &self.output;
-                let sk_path = path.join("ed25519.sk");
-                let pk_path = path.join("ed25519.pk");
-
-                std::fs::write(sk_path, &keys[0])?;
-                std::fs::write(pk_path, &keys[1])?;
-            }
-            TextFormat::ChaCha20 => {
-                let path = &self.output.join("chacha20.txt");
-                std::fs::write(path, &keys[0])?;
-            }
+        for (path, key) in keys {
+            let path = self.output.join(path);
+            tokio::fs::write(path, key).await?;
         }
         Ok(())
     }
